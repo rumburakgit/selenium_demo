@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: order-tests
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: order-tests
+          image: ghcr.io/rumburakgit/order-tests:latest
+          env:
+            - name: BASE_URL
+              value: "http://order-client:80"
