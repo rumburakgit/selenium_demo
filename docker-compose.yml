@@ -1,0 +1,43 @@
+services:
+  order-service:
+    build: ./order-service
+    ports:
+      - "8080:8080"
+    networks:
+      - order-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/products"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-client:
+    build: ./order-client
+    ports:
+      - "80:80"
+    networks:
+      - order-network
+    depends_on:
+      order-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  order-tests:
+    build: ./order-tests
+    networks:
+      - order-network
+    depends_on:
+      order-client:
+        condition: service_healthy
+    environment:
+      - BASE_URL=http://order-client:80
+    profiles:
+      - test
+
+networks:
+  order-network:
+    driver: bridge
