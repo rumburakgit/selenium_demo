@@ -51,3 +51,11 @@ jobs:
           docker tag selenium_demo-order-client ghcr.io/rumburakgit/order-client:${{ github.sha }}
           docker push ghcr.io/rumburakgit/order-client:latest
           docker push ghcr.io/rumburakgit/order-client:${{ github.sha }}
+
+      - name: Push order-tests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag selenium_demo-order-tests ghcr.io/rumburakgit/order-tests:latest
+          docker tag selenium_demo-order-tests ghcr.io/rumburakgit/order-tests:${{ github.sha }}
+          docker push ghcr.io/rumburakgit/order-tests:latest
+          docker push ghcr.io/rumburakgit/order-tests:${{ github.sha }}
