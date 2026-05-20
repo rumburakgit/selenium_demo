@@ -29,7 +29,7 @@ All business logic lives in a single service with no persistence layer:
 - **`OrderService`** — holds the static `PRODUCTS` map (P001–P004), validates `OrderRequest` manually (no Bean Validation), and constructs `OrderResponse`. Validation errors are returned as `Map<String, String>`; unavailability is checked after validation passes.
 - **`OrderController`** (`/api/orders`) — delegates to `OrderService`; returns 400 on validation errors, 422 when product is unavailable, 201 on success. `GET /api/orders/{orderId}` only recognises the hardcoded id `ORD-20240001`.
 - **`ProductController`** (`/api/products`) — thin wrapper over `OrderService.getAllProducts()` / `getProductById()`.
-- **`CorsConfig`** — allows all methods from `http://localhost:5173` only.
+- **`CorsConfig`** — allows all origins (`allowedOriginPatterns("*")`), all methods, no credentials.
 
 ## Key data
 

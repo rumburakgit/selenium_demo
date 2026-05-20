@@ -7,6 +7,13 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      initContainers:
+        - name: wait-for-client
+          image: busybox
+          command: ['sh', '-c', 'until wget -q -O- http://order-client:80; do echo waiting for order-client; sleep 2; done']
+        - name: wait-for-service
+          image: busybox
+          command: ['sh', '-c', 'until wget -q -O- http://order-service:8080/api/products; do echo waiting for order-service; sleep 2; done']
       containers:
         - name: order-tests
           image: ghcr.io/rumburakgit/order-tests:latest

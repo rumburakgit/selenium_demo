@@ -38,6 +38,54 @@ mvn test -Dtest=HappyPathTest   # run a single test class
 mvn test -Dtest=HappyPathTest#happyPathCard  # run a single test method
 ```
 
+Environment variables read by `BaseTest`:
+- `BASE_URL` — defaults to `http://localhost:5173`
+- `CHROME_BIN` — defaults to `/usr/bin/google-chrome`
+- `CHROME_DRIVER` — defaults to `/usr/bin/chromedriver`
+
+### Docker (full stack)
+```bash
+# Build and start backend + frontend (tests excluded by profile)
+docker compose up --build -d
+
+# Run tests against the running stack, then remove container
+docker compose run --rm order-tests
+
+# Tear down
+docker compose down           # stop and remove containers + network
+docker compose down --rmi all # also remove images
+```
+
+In Docker, `order-client` is served by nginx on port **80** (not 5173); `BASE_URL` is set to `http://order-client:80` automatically.
+
+The `order-tests` service is gated behind the `test` Docker Compose profile — it is not started by a plain `docker compose up`. CI runs `docker compose --profile test up --build --exit-code-from order-tests`.
+
+### Kubernetes (minikube)
+Images are built and pushed to `ghcr.io/rumburakgit/` by CI on every merge to `main`.
+
+```bash
+minikube start
+minikube addons enable ingress
+
+# Deploy backend, frontend, and Ingress
+kubectl apply -f k8s/order-service-deployment.yaml -f k8s/order-service-service.yaml
+kubectl apply -f k8s/order-client-deployment.yaml -f k8s/order-client-service.yaml
+kubectl apply -f k8s/ingress.yaml
+
+# Wait for pods, then run the test Job
+kubectl wait --for=condition=ready pod -l app=order-client --timeout=60s
+kubectl apply -f k8s/order-tests-job.yaml
+
+# View test results and clean up
+kubectl logs -l job-name=order-tests
+kubectl delete -f k8s/
+
+# Open frontend in browser — Ingress exposes everything on port 80
+minikube ip   # e.g. 192.168.49.2 → open http://192.168.49.2
+```
+
+The test Job uses `backoffLimit: 0` (no retries) and sets `BASE_URL=http://order-client:80`. It includes init containers that poll until both services are reachable before starting tests.
+
 ## Architecture
 
 ### Data flow
@@ -47,7 +95,7 @@ Frontend (`localhost:5173`) → Vite proxy `/api` → Spring Boot (`localhost:80
 All business logic lives in `OrderService` with no persistence layer. Controllers are thin delegators:
 - `GET /api/products` and `GET /api/products/{id}` via `ProductController`
 - `POST /api/orders` (201 / 400 / 422) and `GET /api/orders/{orderId}` via `OrderController`
-- `CorsConfig` whitelists `http://localhost:5173` only
+- `CorsConfig` allows all origins (`allowedOriginPatterns("*")`)
 
 Validation is manual inside `OrderService` (no Bean Validation). Errors return as `Map<String, String>` with HTTP 400; unavailability returns HTTP 422.
 
