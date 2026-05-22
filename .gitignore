@@ -22,3 +22,7 @@ Thumbs.db
 # Env
 .env
 .env.local
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
