@@ -60,6 +60,42 @@ In Docker, `order-client` is served by nginx on port **80** (not 5173); `BASE_UR
 
 The `order-tests` service is gated behind the `test` Docker Compose profile — it is not started by a plain `docker compose up`. CI runs `docker compose --profile test up --build --exit-code-from order-tests`.
 
+### AWS (Terraform)
+Provisions a single EC2 instance (t2.micro, Ubuntu 22.04, eu-central-1) that clones the repo and runs `docker compose up` on boot. Requires `~/.ssh/kaz_to_git.pub` to exist locally.
+
+```bash
+cd aws
+terraform init
+terraform plan
+terraform apply          # outputs public_ip and app_url
+
+# SSH into instance
+ssh -i ~/.ssh/kaz_to_git ubuntu@<public_ip>
+tail -f /var/log/cloud-init-output.log   # watch bootstrap progress
+
+terraform destroy        # tear down all resources
+```
+
+The `user_data.sh` bootstrap only starts `order-service` and `order-client`; tests are not run automatically. The app is reachable on port 80 via the `app_url` output.
+
+### GCP (Terraform)
+Provisions a single Compute Engine instance (e2-micro, Ubuntu 22.04, europe-central2-a) with identical bootstrap behaviour to AWS. Requires `~/.ssh/kaz_to_git.pub` locally and GCP credentials configured (`gcloud auth application-default login`).
+
+```bash
+cd gcp
+terraform init
+terraform plan
+terraform apply          # outputs public_ip and app_url
+
+# SSH into instance
+ssh -i ~/.ssh/kaz_to_git ubuntu@<public_ip>
+tail -f /var/log/cloud-init-output.log   # watch bootstrap progress
+
+terraform destroy        # tear down all resources
+```
+
+Firewall rule `selenium-demo-firewall` opens ports 22, 80, and 8080 for the tagged instance. The app is reachable on port 80 via the `app_url` output.
+
 ### Kubernetes (minikube)
 Images are built and pushed to `ghcr.io/rumburakgit/` by CI on every merge to `main`.
 
